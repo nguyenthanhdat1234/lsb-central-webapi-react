@@ -254,7 +254,7 @@ const SellerManager = () => {
   const handleExportData = () => {
     const csvContent = [
       // Header
-      ["STT", "ACC", "Sold", "Sales", "Ads", "Ads/Sale", "Lỗi", "Pay Now", "KPI"].join(","),
+      ["STT", "ACC", "Sold", "Sales", "Ads", "Ads/Sale", "Issues", "Pay Now", "KPI"].join(","),
       // Rows
       ...fullReportData.map(item => [
         item.stt,
@@ -546,7 +546,7 @@ const SellerManager = () => {
                     <th className="text-end" style={{padding: '1rem 0.75rem'}}>Sales</th>
                     <th className="text-end" style={{padding: '1rem 0.75rem'}}>Ads</th>
                     <th className="text-end" style={{padding: '1rem 0.75rem'}}>Ads/Sale</th>
-                    <th className="text-center" style={{padding: '1rem 0.75rem'}}>Lỗi</th>
+                    <th className="text-center" style={{padding: '1rem 0.75rem'}}>Issues</th>
                     <th className="text-end" style={{padding: '1rem 0.75rem'}}>Pay Now</th>
                     <th className="text-center" style={{padding: '1rem 0.75rem'}}>KPI</th>
                   </tr>
