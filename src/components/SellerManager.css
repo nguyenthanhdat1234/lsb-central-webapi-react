@@ -1,0 +1,359 @@
+/* SellerManager.css */
+
+/* Main Container */
+.seller-manager {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+  
+  /* Header Styling */
+  .seller-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+  }
+  
+  .seller-title {
+    color: #3c64b1;
+    font-weight: 600;
+    font-size: 1.75rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .seller-subtitle {
+    font-size: 0.95rem;
+    color: #6c757d;
+  }
+  
+  /* Loading & Error States */
+  .seller-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 70vh;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin: 2rem;
+  }
+  
+  .seller-error {
+    margin: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  }
+  
+  /* Dashboard Overview Cards */
+  .overview-card {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .overview-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+  
+  .overview-label {
+    color: #6c757d;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  
+  .overview-value {
+    color: #3c64b1;
+    font-weight: 600;
+    font-size: 1.75rem;
+    margin-bottom: 0;
+  }
+  
+  /* Filter Section */
+  .filter-section {
+    background-color: #ffffff;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    height: 100%;
+  }
+  
+  .filter-label {
+    display: block;
+    color: #495057;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+  
+  .input-wrapper {
+    width: 100%;
+  }
+  
+  .date-picker .form-control {
+    border-color: #ced4da;
+    border-radius: 6px;
+  }
+  
+  .search-input {
+    border-color: #ced4da;
+    border-radius: 6px;
+    padding-left: 0.75rem;
+  }
+  
+  .search-input:focus {
+    box-shadow: 0 0 0 0.2rem rgba(60, 100, 177, 0.25);
+    border-color: #5d7cb4;
+  }
+  
+  .reset-btn {
+    height: 38px;
+    border-radius: 6px;
+  }
+  
+  /* Data Table Styling */
+  .data-card {
+    border: none;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  }
+  
+  .seller-table {
+    margin-bottom: 0;
+  }
+  
+  .seller-table thead th {
+    background-color: #3c64b1;
+    color: white;
+    font-weight: 500;
+    border: none;
+    padding: 0.85rem 0.5rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+  
+  .seller-table tbody tr {
+    transition: background-color 0.15s;
+  }
+  
+  .seller-table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+  }
+  
+  .seller-table td {
+    padding: 0.85rem 0.5rem;
+    vertical-align: middle;
+    border-color: #e9ecef;
+  }
+  
+  .account-name {
+    font-weight: 500;
+    color: #212529;
+  }
+  
+  .summary-row {
+    background-color: #f8f9fa;
+    font-weight: 600;
+  }
+  
+  .summary-row td {
+    border-top: 2px solid #dee2e6;
+  }
+  
+  /* Performance Status Styling */
+  .performance-excellent {
+    background-color: rgba(42, 157, 143, 0.05);
+  }
+  
+  .performance-good {
+    background-color: rgba(242, 183, 5, 0.05);
+  }
+  
+  .performance-average {
+    background-color: rgba(244, 162, 97, 0.05);
+  }
+  
+  .performance-poor {
+    background-color: rgba(231, 111, 81, 0.05);
+  }
+  
+  .ratio-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+  
+  .ratio-excellent {
+    background-color: rgba(42, 157, 143, 0.15);
+    color: #2a9d8f;
+  }
+  
+  .ratio-good {
+    background-color: rgba(242, 183, 5, 0.15);
+    color: #b58904;
+  }
+  
+  .ratio-average {
+    background-color: rgba(244, 162, 97, 0.15);
+    color: #e76f51;
+  }
+  
+  .ratio-poor {
+    background-color: rgba(231, 111, 81, 0.15);
+    color: #e76f51;
+  }
+  
+  .status-badge {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .status-excellent {
+    background-color: #2a9d8f;
+    color: white;
+  }
+  
+  .status-good {
+    background-color: #f2b705;
+    color: white;
+  }
+  
+  .status-average {
+    background-color: #f4a261;
+    color: white;
+  }
+  
+  .status-poor {
+    background-color: #e76f51;
+    color: white;
+  }
+  
+  /* KPI Input Styling */
+  .kpi-cell {
+    max-width: 130px;
+  }
+  
+  .kpi-input-wrapper {
+    position: relative;
+  }
+  
+  .kpi-input-group {
+    position: relative;
+  }
+  
+  .kpi-input {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    padding-right: 28px;
+    transition: all 0.2s;
+  }
+  
+  .kpi-input.editing {
+    border-color: #5d7cb4;
+    box-shadow: 0 0 0 0.2rem rgba(60, 100, 177, 0.25);
+  }
+  
+  .kpi-input::placeholder {
+    color: #adb5bd;
+    font-style: italic;
+    font-size: 0.85rem;
+  }
+  
+  .save-indicator {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #2a9d8f;
+    animation: fadeInOut 2s ease-in-out;
+    z-index: 2;
+  }
+  
+  @keyframes fadeInOut {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  
+  /* Pagination Styling */
+  .pagination-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+  
+  .seller-pagination {
+    background-color: white;
+    border-radius: 8px;
+    padding: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  
+  .seller-pagination .page-link {
+    color: #3c64b1;
+    border-color: #e9ecef;
+    margin: 0 2px;
+    border-radius: 4px;
+  }
+  
+  .seller-pagination .page-item.active .page-link {
+    background-color: #3c64b1;
+    border-color: #3c64b1;
+  }
+  
+  .seller-pagination .page-link:focus {
+    box-shadow: 0 0 0 0.2rem rgba(60, 100, 177, 0.25);
+  }
+  
+  /* Responsive Adjustments */
+  @media (max-width: 992px) {
+    .overview-card {
+      margin-bottom: 1rem;
+    }
+    
+    .seller-table {
+      min-width: 900px;
+    }
+  }
+  
+  /* No Data Alert */
+  .no-data-alert {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  
+  /* Export Button */
+  .export-btn {
+    border-radius: 6px;
+    padding: 0.4rem 1rem;
+    font-weight: 500;
+  }
+  
+  /* Page Info */
+  .page-info {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+  
+  .results-count {
+    background-color: #ffffff;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+  .custom-date-card .date-range-title {
+    display: none;
+  }

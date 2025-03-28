@@ -4,7 +4,7 @@ import { Calendar } from 'react-bootstrap-icons';
 
 const DateRangePicker = ({ dateRange, onDateChange }) => (
   <Form.Group>
-    <Form.Label>Date Range</Form.Label>
+    <Form.Label style={{ fontWeight: 'bold' }}>Date Range</Form.Label>
     <Row>
       <Col xs={12} md={6} className="pe-md-1">
         <InputGroup>
