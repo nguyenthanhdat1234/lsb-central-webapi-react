@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import CampaignDashboard from './components/CampaignDashboard';
 import ClientManager from './components/ClientManager';
+import SellerManager from './components/SummarySellerReport';
 import { Navbar, Container, Nav, Col, Row } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -79,6 +80,15 @@ function App() {
                 <i className="bi bi-people-fill me-2"></i>
                 Client Manager
               </Nav.Link>
+              
+              <Nav.Link 
+                active={activeSection === 'sellers'} 
+                onClick={() => handleMainNavigation('sellers')}
+                className="fw-bold mt-3"
+              >
+                <i className="bi bi-shop me-2"></i>
+                Seller Manager
+              </Nav.Link>
             </Nav>
           </Col>
           
@@ -86,6 +96,7 @@ function App() {
           <Col md={10} className="p-0">
             {activeSection === 'reports' && <CampaignDashboard reportType={activeReportType} />}
             {activeSection === 'clients' && <ClientManager />}
+            {activeSection === 'sellers' && <SellerManager />}
           </Col>
         </Row>
       </Container>

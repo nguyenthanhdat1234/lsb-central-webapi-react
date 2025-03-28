@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table } from 'react-bootstrap';
+import { API_BASE_URL } from '../config/apiConfig';
+import { formatDate } from '../utils/dateUtils';
 
 const ClientManager = () => {
   const [clients, setClients] = useState([]);
@@ -9,7 +11,7 @@ const ClientManager = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:5655/api/Clients');
+        const response = await fetch(`${API_BASE_URL}/api/Clients`);
         if (!response.ok) {
           throw new Error(`API request failed with status ${response.status}`);
         }
@@ -18,7 +20,7 @@ const ClientManager = () => {
         setLoading(false);
       } catch (err) {
         console.error("Error fetching client data:", err);
-        setError("Không thể tải dữ liệu khách hàng. Vui lòng thử lại sau.");
+        setError("Unable to load client data. Please try again later.");
         setLoading(false);
       }
     };
@@ -26,14 +28,6 @@ const ClientManager = () => {
     fetchData();
   }, []);
 
-  // Format date từ timestamp
-  const formatDate = (timestamp) => {
-    if (!timestamp) return '-';
-    const date = new Date(timestamp);
-    return date.toLocaleString();
-  };
-
-  // Xác định trạng thái kết nối dựa trên lastHandshake
   const getConnectionStatus = (lastHandshake) => {
     if (!lastHandshake) return 'danger';
     
@@ -41,12 +35,12 @@ const ClientManager = () => {
     const now = new Date();
     const diffHours = (now - handshakeTime) / (1000 * 60 * 60);
     
-    if (diffHours < 1) return 'success';  // Kết nối trong vòng 1 giờ
-    if (diffHours < 24) return 'warning'; // Kết nối trong vòng 24 giờ
-    return 'danger';  // Không kết nối > 24 giờ
+    if (diffHours < 1) return 'success';
+    if (diffHours < 24) return 'warning';
+    return 'danger';
   };
 
-  if (loading) return <div className="text-center p-5">Đang tải dữ liệu...</div>;
+  if (loading) return <div className="text-center p-5">Loading data...</div>;
   if (error) return <div className="text-center p-5 text-danger">{error}</div>;
 
   return (
@@ -80,7 +74,7 @@ const ClientManager = () => {
               ))}
               {clients.length === 0 && (
                 <tr>
-                  <td colSpan="4" className="text-center">Không có dữ liệu</td>
+                  <td colSpan="4" className="text-center">No data available</td>
                 </tr>
               )}
             </tbody>
