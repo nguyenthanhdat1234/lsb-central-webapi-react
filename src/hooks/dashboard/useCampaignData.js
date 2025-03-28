@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { fetchFromApi } from '../../services/api';
-import { processAndAggregateData, generateTableData } from '../../services/campaignService';
+import { campaignService } from '../../services/campaignService';
 
 export const useCampaignData = (dateRange, currentPage, pageSize) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalPages, setTotalPages] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -14,12 +14,15 @@ export const useCampaignData = (dateRange, currentPage, pageSize) => {
         setLoading(true);
         setError(null);
         
-        const response = await fetchFromApi('/api/CampaignDailyReports');
-        const processedData = processAndAggregateData(response, dateRange);
-        const tableData = generateTableData(processedData);
-        
-        setData(processedData);
-        setTotalPages(Math.ceil(tableData.length / pageSize));
+        const response = await campaignService.getCampaignsPaginated(
+          currentPage,
+          pageSize,
+          dateRange
+        );
+
+        setData(response.data);
+        setTotalPages(response.totalPages);
+        setTotalItems(response.totalItems);
         setLoading(false);
       } catch (err) {
         setError(err.message);
@@ -30,5 +33,13 @@ export const useCampaignData = (dateRange, currentPage, pageSize) => {
     fetchData();
   }, [dateRange, currentPage, pageSize]);
 
-  return { data, loading, error, totalPages };
+  return { 
+    data, 
+    loading, 
+    error, 
+    totalPages,
+    totalItems,
+    pageSize,
+    currentPage 
+  };
 };

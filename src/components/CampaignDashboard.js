@@ -4,59 +4,35 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { API_BASE_URL } from '../config/apiConfig';
 import DateRangePicker from './common/DateRangePicker';
 import { useDateRange } from '../hooks/useDateRange';
-import { 
-  DEFAULT_PAGE_SIZE, 
-  CHART_COLORS,
-  DEFAULT_BUDGET,
-  SPECIAL_CAMPAIGN_CONFIG 
-} from '../constants';
+import { DEFAULT_PAGE_SIZE, CHART_COLORS, DEFAULT_BUDGET, SPECIAL_CAMPAIGN_CONFIG } from '../constants';
 import { fetchFromApi } from '../services/api';
 
-// Định nghĩa hàm formatDate trong component
 const formatDate = (dateString) => {
   if (!dateString) return '';
   
   try {
     const d = new Date(dateString);
-    
-    // Kiểm tra nếu ngày không hợp lệ
-    if (isNaN(d.getTime())) {
-      return '';
-    }
-    
-    // Lấy ngày, tháng, năm
+    if (isNaN(d.getTime())) return '';
     const day = d.getDate();
-    const month = d.getMonth() + 1; // getMonth() trả về 0-11
+    const month = d.getMonth() + 1;
     const year = d.getFullYear();
-    
-    // Định dạng d/mm/yyyy (không thêm 0 phía trước ngày, nhưng thêm 0 phía trước tháng nếu cần)
     return `${day}/${month < 10 ? '0' + month : month}/${year}`;
   } catch (err) {
-    console.warn("Error formatting date:", dateString, err);
     return '';
   }
 };
 
-// Định nghĩa hàm formatChartDate cho biểu đồ
 const formatChartDate = (dateString) => {
   if (!dateString) return '';
   
   try {
     const d = new Date(dateString);
-    
-    // Kiểm tra nếu ngày không hợp lệ
-    if (isNaN(d.getTime())) {
-      return '';
-    }
-    
-    // Format dd/mm/yy như trong ảnh của bạn
+    if (isNaN(d.getTime())) return '';
     const day = d.getDate();
     const month = d.getMonth() + 1;
     const year = d.getFullYear().toString().slice(2);
-    
     return `${day < 10 ? '0' + day : day}/${month < 10 ? '0' + month : month}/${year}`;
   } catch (err) {
-    console.warn("Error formatting chart date:", dateString, err);
     return dateString;
   }
 };
@@ -71,7 +47,7 @@ const CampaignDashboard = ({ reportType }) => {
   const [error, setError] = useState(null);
   const [selectedCampaign, setSelectedCampaign] = useState('all');
   const [campaigns, setCampaigns] = useState([]);
-  const [dateRange, setDateRange] = useDateRange(10); // Use 10 days for dashboard
+  const [dateRange, setDateRange] = useDateRange(10);
   const [aggregatedData, setAggregatedData] = useState([]);
   const [tableData, setTableData] = useState([]);
   const [pageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -88,20 +64,13 @@ const CampaignDashboard = ({ reportType }) => {
       try {
         setLoading(true);
         setError(null);
-        console.log("Fetching campaign data with date range:", dateRange);
         
-        // Using the enhanced api service
         const allData = await fetchFromApi('/api/CampaignDailyReports');
         
-        // Kiểm tra dữ liệu trả về
         if (!allData || !Array.isArray(allData)) {
-          console.error("Invalid API response format:", allData);
           throw new Error(`API response is not valid. Expected array but got ${typeof allData}`);
         }
         
-        console.log("API response:", allData.length, "items");
-        
-        // Xử lý dữ liệu cho chart
         const processedData = allData.map(item => ({
           ...item,
           date: new Date(item.date).toISOString().split('T')[0],
@@ -111,7 +80,6 @@ const CampaignDashboard = ({ reportType }) => {
           sales1d: Number(item.sales1d || 0)
         }));
 
-        // Lọc dữ liệu theo ngày
         const filteredData = processedData.filter(item => {
           try {
             const itemDate = new Date(item.date);
@@ -119,73 +87,54 @@ const CampaignDashboard = ({ reportType }) => {
             const endDate = new Date(dateRange.end);
             return itemDate >= startDate && itemDate <= endDate;
           } catch (err) {
-            console.warn("Invalid date format for item:", item, err);
             return false;
           }
         });
-        console.log("Filtered data by date range:", filteredData.length, "items");
         
-        // Thiết lập dữ liệu gốc
         setData(processedData);
         
-        // Xác định các chiến dịch duy nhất
         const uniqueCampaigns = [...new Set(filteredData.map(item => 
           item.campaignName || 'Unknown Campaign'))];
         setCampaigns(['All', ...uniqueCampaigns]);
         
-        // Tổng hợp dữ liệu cho chart
         let aggregatedByDate = [];
         try {
           aggregatedByDate = processAndAggregateWithNormalization(filteredData);
           setAggregatedData(aggregatedByDate);
-          console.log("Aggregated data for chart:", aggregatedByDate.length, "items");
         } catch (err) {
-          console.error("Error in aggregation:", err);
           setError(`Error processing chart data: ${err.message}`);
         }
         
-        // Tạo dữ liệu cho bảng từ cùng nguồn dữ liệu đã lọc
         if (filteredData.length > 0) {
           let generatedTableData = [];
           try {
             generatedTableData = generateTableData(filteredData);
-            console.log("Generated table data before pagination:", generatedTableData.length, "items");
             
-            // Thiết lập phân trang dựa trên dữ liệu đã lọc
             const totalItems = generatedTableData.length;
             const calculatedTotalPages = Math.ceil(totalItems / pageSize) || 1;
             setTotalPages(calculatedTotalPages);
-            console.log("Total items:", totalItems, "Total pages:", calculatedTotalPages);
             
-            // Đảm bảo trang hiện tại hợp lệ
             const validCurrentPage = Math.min(currentPage, Math.max(1, calculatedTotalPages));
             if (validCurrentPage !== currentPage) {
               setCurrentPage(validCurrentPage);
             }
             
-            // Phân trang cho bảng
             const startIndex = (validCurrentPage - 1) * pageSize;
             const endIndex = startIndex + pageSize;
             const paginatedTableData = generatedTableData.slice(startIndex, endIndex);
-            console.log("Final paginated table data:", paginatedTableData.length, "items");
             setTableData(paginatedTableData);
           } catch (err) {
-            console.error("Error generating table data:", err);
             setError(`Error processing table data: ${err.message}`);
             setTableData([]);
             setTotalPages(0);
           }
         } else {
-          // Không có dữ liệu
-          console.warn("No data available after filtering");
           setTableData([]);
           setTotalPages(0);
         }
         
       } catch (err) {
-        console.error("Dashboard Error:", err);
         setError(`Unable to load dashboard data: ${err.message}`);
-        // Đảm bảo không có trạng thái dở dang
         setTableData([]);
         setTotalPages(0);
       } finally {
@@ -196,19 +145,15 @@ const CampaignDashboard = ({ reportType }) => {
     fetchData();
   }, [dateRange, currentPage, pageSize]);
 
-  // Hàm xử lý và chuẩn hóa dữ liệu để hiển thị trong cùng một biểu đồ
   const processAndAggregateWithNormalization = (rawData) => {
     if (!rawData || !Array.isArray(rawData)) {
-      console.error("Invalid data passed to processAndAggregate:", rawData);
       return [];
     }
     
-    console.log("Processing raw data for chart:", rawData.length, "items");
     const dailyData = {};
     
     rawData.forEach(item => {
       if (!item || !item.date) {
-        console.warn("Skipping invalid item in aggregation:", item);
         return;
       }
       
@@ -219,67 +164,48 @@ const CampaignDashboard = ({ reportType }) => {
           impressions: 0,
           spend: 0,
           sales: 0,
-          // Thêm các trường chuẩn hóa
           impressionsOriginal: 0,
           spendOriginal: 0,
           salesOriginal: 0
         };
       }
       
-      // Lưu giá trị gốc
       dailyData[dateKey].impressionsOriginal += Number(item.impressions || 0);
       dailyData[dateKey].spendOriginal += Number(item.spend || 0);
       dailyData[dateKey].salesOriginal += Number(item.sales1d || 0);
       
-      // Cũng lưu vào trường hiển thị
       dailyData[dateKey].impressions += Number(item.impressions || 0);
       dailyData[dateKey].spend += Number(item.spend || 0);
       dailyData[dateKey].sales += Number(item.sales1d || 0);
     });
 
-    // Kiểm tra và log nếu không có dữ liệu
     if (Object.keys(dailyData).length === 0) {
-      console.warn("No dates found after aggregation");
       return [];
     }
 
-    // Sắp xếp dữ liệu theo ngày
     const sortedData = Object.values(dailyData).sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    // Không chuẩn hóa dữ liệu vì chúng ta sẽ sử dụng nhiều trục
-    console.log("Processed chart data:", sortedData.length, "items");
-    
-    // Ví dụ về dữ liệu
-    if (sortedData.length > 0) {
-      console.log("Sample data point:", sortedData[0]);
-    }
     
     return sortedData;
   };
 
   const generateTableData = (rawData) => {
     if (!rawData || !Array.isArray(rawData)) {
-      console.error("Invalid data passed to generateTableData:", rawData);
       return [];
     }
     
-    console.log("Generating table data from:", rawData.length, "items");
     const campaignData = {};
     
     rawData.forEach(item => {
       if (!item || !item.campaignName) {
-        console.warn("Skipping invalid item in table generation:", item);
         return;
       }
       
       const campaignName = item.campaignName;
       if (!campaignData[campaignName]) {
-        // Sử dụng hàm formatDate đã được định nghĩa
         let formattedDate = '';
         try {
           formattedDate = formatDate(item.date);
         } catch (err) {
-          console.warn("Error formatting date:", item.date, err);
           formattedDate = item.date || 'N/A';
         }
         
@@ -296,24 +222,19 @@ const CampaignDashboard = ({ reportType }) => {
         };
       }
       
-      // Use converted numbers from processedData
       campaignData[campaignName].impressions += Number(item.impressions || 0);
       campaignData[campaignName].clicks += Number(item.clicks || 0);
       campaignData[campaignName].spend += Number(item.spend || 0);
       
-      // Check for special campaigns
       if (item.campaignId === SPECIAL_CAMPAIGN_CONFIG.ID) {
         campaignData[campaignName].budget = `$${SPECIAL_CAMPAIGN_CONFIG.BUDGET}`;
       }
     });
     
-    // Check if we have any campaigns
     if (Object.keys(campaignData).length === 0) {
-      console.warn("No campaigns found after processing");
       return [];
     }
     
-    // Format the campaign data for display
     const formattedCampaigns = Object.values(campaignData).map(campaign => {
       try {
         return {
@@ -325,7 +246,6 @@ const CampaignDashboard = ({ reportType }) => {
           spend: "$" + campaign.spend.toFixed(2)
         };
       } catch (err) {
-        console.error("Error formatting campaign data:", campaign, err);
         return {
           ...campaign,
           ctr: "0.00",
@@ -337,7 +257,6 @@ const CampaignDashboard = ({ reportType }) => {
       }
     });
     
-    console.log("Generated table data:", formattedCampaigns.length, "items");
     return formattedCampaigns;
   };
 
@@ -361,7 +280,6 @@ const CampaignDashboard = ({ reportType }) => {
         
         return processAndAggregateWithNormalization(filteredData);
       } catch (err) {
-        console.error("Error filtering chart data:", err);
         return [];
       }
     }
@@ -374,7 +292,7 @@ const CampaignDashboard = ({ reportType }) => {
       case 'multipleCountry':
         return 'Multiple Country Report';
       default:
-        return 'Report';
+        return 'Campaign Performance Report';
     }
   };
 
@@ -397,7 +315,7 @@ const CampaignDashboard = ({ reportType }) => {
     }
 
     return (
-      <Pagination className="justify-content-center mt-3">
+      <Pagination className="justify-content-center mt-4">
         <Pagination.First onClick={() => handlePageChange(1)} disabled={currentPage === 1} />
         <Pagination.Prev onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
         {items}
@@ -407,221 +325,449 @@ const CampaignDashboard = ({ reportType }) => {
     );
   };
 
+  const generateCardStats = () => {
+    if (!aggregatedData || aggregatedData.length === 0) return [];
+    
+    const total = aggregatedData.reduce((acc, curr) => {
+      return {
+        impressions: acc.impressions + curr.impressions,
+        spend: acc.spend + curr.spend,
+        sales: acc.sales + curr.sales
+      };
+    }, { impressions: 0, spend: 0, sales: 0 });
+    
+    return [
+      {
+        title: 'Total Impressions',
+        value: total.impressions.toLocaleString(),
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="text-primary" viewBox="0 0 16 16">
+            <path d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5v12h-2V2h2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z"/>
+          </svg>
+        ),
+        color: 'primary'
+      },
+      {
+        title: 'Total Spend',
+        value: `$${total.spend.toFixed(2)}`,
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="text-success" viewBox="0 0 16 16">
+            <path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/>
+            <path d="M0 4a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V4zm3 0a2 2 0 0 1-2 2v4a2 2 0 0 1 2 2h10a2 2 0 0 1 2-2V6a2 2 0 0 1-2-2H3z"/>
+          </svg>
+        ),
+        color: 'success'
+      },
+      {
+        title: 'Total Sales',
+        value: `$${total.sales.toFixed(2)}`,
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="text-info" viewBox="0 0 16 16">
+            <path d="M0 2.5A.5.5 0 0 1 .5 2H2a.5.5 0 0 1 .485.379L2.89 4H14.5a.5.5 0 0 1 .485.621l-1.5 6A.5.5 0 0 1 13 11H4a.5.5 0 0 1-.485-.379L1.61 3H.5a.5.5 0 0 1-.5-.5zM3.14 5l1.25 5h8.22l1.25-5H3.14zM5 13a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm7 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
+          </svg>
+        ),
+        color: 'info'
+      },
+      {
+        title: 'ROI',
+        value: total.spend > 0 ? `${((total.sales / total.spend) * 100).toFixed(2)}%` : '0.00%',
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="text-warning" viewBox="0 0 16 16">
+            <path d="M15.985 8.5H8.207l-5.5 5.5a8 8 0 0 0 13.277-5.5zM2 13.292A8 8 0 0 1 7.5.015v7.778l-5.5 5.5zM8.5.015V7.5h7.485A8.001 8.001 0 0 0 8.5.015z"/>
+          </svg>
+        ),
+        color: 'warning'
+      }
+    ];
+  };
+
   if (loading) return (
-    <div className="d-flex justify-content-center align-items-center" style={{height: '400px'}}>
-      <Spinner animation="border" role="status" variant="primary">
-        <span className="visually-hidden">Loading...</span>
-      </Spinner>
+    <div className="d-flex justify-content-center align-items-center" style={{height: '80vh'}}>
+      <div className="text-center">
+        <Spinner animation="border" role="status" variant="primary" style={{ width: '3rem', height: '3rem' }}>
+          <span className="visually-hidden">Loading...</span>
+        </Spinner>
+        <p className="mt-3 text-muted">Loading campaign data...</p>
+      </div>
     </div>
   );
   
   if (error) return (
-    <Alert variant="danger" className="m-4">
-      {error}
+    <Alert variant="danger" className="m-4 shadow-sm">
+      <div className="d-flex align-items-center">
+        <div className="me-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <div>
+          <h5 className="mb-1">Error Loading Dashboard</h5>
+          <p className="mb-0">{error}</p>
+        </div>
+      </div>
     </Alert>
   );
 
   const chartData = getFilteredChartData();
   const hasChartData = chartData && chartData.length > 0;
+  const stats = generateCardStats();
 
   return (
-    <div className="p-4">
-      <h2 className="mb-4">{getReportTitle()}</h2>
+    <div className="dashboard-container p-4 bg-light">
+      <div className="dashboard-header bg-white rounded shadow-sm p-4 mb-4">
+        <div className="d-flex justify-content-between align-items-center flex-wrap">
+          <h2 className="mb-0 text-primary">{getReportTitle()}</h2>
+          <div className="d-flex align-items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" className="text-muted me-2" viewBox="0 0 16 16">
+              <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/>
+            </svg>
+            <span className="text-muted">
+              {formatDate(dateRange.start)} - {formatDate(dateRange.end)}
+            </span>
+          </div>
+        </div>
+      </div>
       
-      <Row className="mb-4">
-        <Col md={3}>
-          <Form.Group>
-            <Form.Label>Campaign</Form.Label>
-            <Form.Select 
-              variant="dark"
-              className="bg-dark text-white"
-              value={selectedCampaign}
-              onChange={(e) => setSelectedCampaign(e.target.value)}
-            >
-              {campaigns.map(campaign => (
-                <option key={campaign} value={campaign}>
-                  {campaign === 'All' ? 'All Campaigns' : campaign}
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group>
+      {stats.length > 0 && (
+        <Row className="g-3 mb-4">
+          {stats.map((stat, index) => (
+            <Col md={3} sm={6} key={index}>
+              <Card className="border-0 shadow-sm h-100">
+                <Card.Body className="d-flex align-items-center">
+                  <div className={`rounded-circle bg-${stat.color} bg-opacity-10 p-3 me-3`}>
+                    {stat.icon}
+                  </div>
+                  <div>
+                    <h6 className="text-muted mb-1">{stat.title}</h6>
+                    <h3 className="mb-0 fw-bold">{stat.value}</h3>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
+      
+      <Row className="mb-4 g-4">
+        <Col lg={4}>
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Body>
+              <h5 className="card-title mb-3">Filter Options</h5>
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-medium">Campaign</Form.Label>
+                <Form.Select 
+                  className="border rounded"
+                  value={selectedCampaign}
+                  onChange={(e) => setSelectedCampaign(e.target.value)}
+                >
+                  {campaigns.map(campaign => (
+                    <option key={campaign} value={campaign}>
+                      {campaign === 'All' ? 'All Campaigns' : campaign}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+              
+              <Form.Group>
+                
+                <DateRangePicker 
+                  dateRange={dateRange} 
+                  onDateChange={setDateRange}
+                />
+              </Form.Group>
+            </Card.Body>
+          </Card>
         </Col>
         
-        <Col md={9}>
-          <DateRangePicker 
-            dateRange={dateRange} 
-            onDateChange={setDateRange}
-          />
+        <Col lg={8}>
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h5 className="card-title mb-0">Performance Trends</h5>
+                <div className="d-flex">
+                  <div className="d-flex align-items-center me-3">
+                    <div className="rounded-circle" style={{width: '10px', height: '10px', backgroundColor: '#4e73df'}}></div>
+                    <span className="ms-2 text-muted small">Impressions</span>
+                  </div>
+                  <div className="d-flex align-items-center me-3">
+                    <div className="rounded-circle" style={{width: '10px', height: '10px', backgroundColor: '#1cc88a'}}></div>
+                    <span className="ms-2 text-muted small">Spend</span>
+                  </div>
+                  <div className="d-flex align-items-center">
+                    <div className="rounded-circle" style={{width: '10px', height: '10px', backgroundColor: '#36b9cc'}}></div>
+                    <span className="ms-2 text-muted small">Sales</span>
+                  </div>
+                </div>
+              </div>
+              
+              {hasChartData ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart
+                    data={chartData}
+                    margin={{
+                      top: 5,
+                      right: 30,
+                      left: 20,
+                      bottom: 5,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f8f9fc" />
+                    <XAxis 
+                      dataKey="date" 
+                      stroke="#5a5c69"
+                      tickFormatter={formatChartDate}
+                      tick={{ fill: '#5a5c69', fontSize: 12 }}
+                    />
+                    <YAxis 
+                      yAxisId="impressions" 
+                      orientation="left"
+                      stroke="#5a5c69"
+                      domain={['auto', 'auto']}
+                      tickFormatter={value => new Intl.NumberFormat().format(value)}
+                      tick={{ fill: '#5a5c69', fontSize: 12 }}
+                      allowDecimals={false}
+                    />
+                    <YAxis 
+                      yAxisId="sales-spend" 
+                      orientation="right" 
+                      stroke="#5a5c69"
+                      domain={['auto', 'auto']} 
+                      tickFormatter={value => new Intl.NumberFormat().format(value)}
+                      tick={{ fill: '#5a5c69', fontSize: 12 }}
+                      allowDecimals={false}
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15)', border: 'none' }}
+                      labelStyle={{ color: '#5a5c69', fontWeight: 'bold', marginBottom: '5px' }}
+                      formatter={(value, name) => {
+                        return [new Intl.NumberFormat().format(value), name];
+                      }}
+                      labelFormatter={formatChartDate}
+                    />
+                    <Legend display={false} />
+                    <Line
+                      yAxisId="impressions"
+                      type="monotone"
+                      dataKey="impressions"
+                      name="Impressions"
+                      stroke="#4e73df"
+                      strokeWidth={2}
+                      dot={{ r: 3, strokeWidth: 2 }}
+                      activeDot={{ r: 6 }}
+                    />
+                    <Line
+                      yAxisId="sales-spend"
+                      type="monotone"
+                      dataKey="spend"
+                      name="Spend"
+                      stroke="#1cc88a"
+                      strokeWidth={2}
+                      dot={{ r: 3, strokeWidth: 2 }}
+                      activeDot={{ r: 6 }}
+                    />
+                    <Line
+                      yAxisId="sales-spend"
+                      type="monotone"
+                      dataKey="sales"
+                      name="Sales"
+                      stroke="#36b9cc"
+                      strokeWidth={2}
+                      dot={{ r: 3, strokeWidth: 2 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-5">
+                  <div className="mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" className="text-muted" viewBox="0 0 16 16">
+                      <path d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5v12h-2V2h2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z"/>
+                    </svg>
+                  </div>
+                  <h5 className="text-muted">No data available</h5>
+                  <p className="text-muted small">Try changing your filter settings</p>
+                </div>
+              )}
+            </Card.Body>
+          </Card>
         </Col>
       </Row>
       
-      <Card className="bg-dark text-white border-secondary mb-4">
+      <Card className="border-0 shadow-sm mb-4">
         <Card.Body>
-          <div className="d-flex mb-3">
-            <div className="d-flex align-items-center me-4">
-              <div className="rounded-circle bg-success" style={{width: '12px', height: '12px'}}></div>
-              <span className="ms-2">Impressions</span>
-            </div>
-            <div className="d-flex align-items-center me-4">
-              <div className="rounded-circle bg-warning" style={{width: '12px', height: '12px'}}></div>
-              <span className="ms-2">Spend</span>
-            </div>
-            <div className="d-flex align-items-center">
-              <div className="rounded-circle bg-info" style={{width: '12px', height: '12px'}}></div>
-              <span className="ms-2">Sales</span>
-            </div>
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h5 className="card-title mb-0">Campaign Details</h5>
+            
+            <InputGroup style={{ maxWidth: '300px' }}>
+              <InputGroup.Text className="bg-white border-end-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" className="text-muted" viewBox="0 0 16 16">
+                  <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                </svg>
+              </InputGroup.Text>
+              <Form.Control
+                placeholder="Search campaigns..."
+                className="border-start-0 ps-0"
+              />
+            </InputGroup>
           </div>
           
-          {hasChartData ? (
-            <ResponsiveContainer width="100%" height={400}>
-              <LineChart
-                data={chartData}
-                margin={{
-                  top: 20,
-                  right: 50,
-                  left: 50,
-                  bottom: 20,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                <XAxis 
-                  dataKey="date" 
-                  stroke="#ddd"
-                  tickFormatter={formatChartDate}
-                  tick={{ fill: '#ddd' }}
-                />
-                {/* Trục Y bên trái cho Impressions */}
-                <YAxis 
-                  yAxisId="impressions" 
-                  orientation="left"
-                  stroke="#28a745" // Màu xanh lá
-                  domain={['auto', 'auto']}
-                  tickFormatter={value => new Intl.NumberFormat().format(value)}
-                  tick={{ fill: '#28a745' }}
-                  allowDecimals={false}
-                />
-                
-                {/* Trục Y bên phải cho Sales và Spend */}
-                <YAxis 
-                  yAxisId="sales-spend" 
-                  orientation="right" 
-                  stroke="#17a2b8" // Màu xanh dương
-                  domain={['auto', 'auto']} 
-                  tickFormatter={value => new Intl.NumberFormat().format(value)}
-                  tick={{ fill: '#17a2b8' }}
-                  allowDecimals={false}
-                />
-                
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#333', border: 'none' }}
-                  labelStyle={{ color: '#fff' }}
-                  formatter={(value, name) => {
-                    // Định dạng giá trị với dấu phân cách hàng nghìn
-                    return [new Intl.NumberFormat().format(value), name];
-                  }}
-                  labelFormatter={formatChartDate}
-                />
-                
-                <Legend verticalAlign="bottom" height={36} />
-                
-                <Line
-                  yAxisId="impressions"
-                  type="monotone"
-                  dataKey="impressions"
-                  name="Impressions"
-                  stroke="#28a745" // Màu xanh lá
-                  strokeWidth={2}
-                  dot={{ r: 3, strokeWidth: 2 }}
-                  activeDot={{ r: 6 }}
-                />
-                
-                <Line
-                  yAxisId="sales-spend"
-                  type="monotone"
-                  dataKey="spend"
-                  name="Spend"
-                  stroke="#ffc107" // Màu vàng
-                  strokeWidth={2}
-                  dot={{ r: 3, strokeWidth: 2 }}
-                  activeDot={{ r: 6 }}
-                />
-                
-                <Line
-                  yAxisId="sales-spend"
-                  type="monotone"
-                  dataKey="sales"
-                  name="Sales"
-                  stroke="#17a2b8" // Màu xanh dương
-                  strokeWidth={2}
-                  dot={{ r: 3, strokeWidth: 2 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="text-center py-5">
-              <p>No data available for chart visualization</p>
+          {tableData.length > 0 ? (
+            <div className="table-container">
+              <div className="table-responsive">
+                <Table className="table-hover campaign-table">
+                  <thead>
+                    <tr>
+                      <th className="border-0 py-3">
+                        <div className="text-uppercase text-muted small fw-semibold tracking-wider">Name</div>
+                      </th>
+                      <th className="border-0 py-3">
+                        <div className="text-uppercase text-muted small fw-semibold tracking-wider">Status</div>
+                      </th>
+                      <th className="border-0 py-3">
+                        <div className="text-uppercase text-muted small fw-semibold tracking-wider">Date</div>
+                      </th>
+                      <th className="border-0 py-3">
+                        <div className="text-uppercase text-muted small fw-semibold tracking-wider">Budget</div>
+                      </th>
+                      <th className="border-0 py-3 text-end">
+                        <div className="text-uppercase text-muted small fw-semibold tracking-wider">Impressions</div>
+                      </th>
+                      <th className="border-0 py-3 text-end">
+                        <div className="text-uppercase text-muted small fw-semibold tracking-wider">Clicks</div>
+                      </th>
+                      <th className="border-0 py-3 text-end">
+                        <div className="text-uppercase text-muted small fw-semibold tracking-wider">CTR</div>
+                      </th>
+                      <th className="border-0 py-3 text-end">
+                        <div className="text-uppercase text-muted small fw-semibold tracking-wider">Spend</div>
+                      </th>
+                      <th className="border-0 py-3 text-end">
+                        <div className="text-uppercase text-muted small fw-semibold tracking-wider">CPC</div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableData.map((campaign, index) => (
+                      <tr key={index} className={index % 2 === 0 ? 'bg-light bg-opacity-50' : ''}>
+                        <td className="py-3">
+                          <div className="d-flex align-items-center">
+                            <div className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" 
+                                style={{width: '36px', height: '36px', minWidth: '36px'}}>
+                              <span className="text-primary fw-bold">{campaign.name.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <div className="ms-3 fw-medium text-truncate" style={{maxWidth: '180px'}}>{campaign.name}</div>
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          <span className={`badge rounded-pill ${
+                            campaign.status === 'Active' ? 'bg-success-subtle text-success' : 
+                            campaign.status === 'Paused' ? 'bg-warning-subtle text-warning' : 
+                            'bg-secondary-subtle text-secondary'
+                          } px-3 py-2`}>
+                            {campaign.status}
+                          </span>
+                        </td>
+                        <td className="py-3">{campaign.date}</td>
+                        <td className="py-3">
+                          <div className="fw-semibold">{campaign.budget}</div>
+                        </td>
+                        <td className="py-3 text-end">
+                          <div className="text-body-secondary">{campaign.impressions}</div>
+                        </td>
+                        <td className="py-3 text-end">
+                          <div>{campaign.clicks}</div>
+                        </td>
+                        <td className="py-3 text-end">
+                          <div className="fw-medium">{campaign.ctr}%</div>
+                        </td>
+                        <td className="py-3 text-end">
+                          <div className="fw-semibold text-success">{campaign.spend}</div>
+                        </td>
+                        <td className="py-3 text-end">
+                          <div className="fw-medium">${campaign.cpc}</div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="mt-4 pagination-container">
+                  <div className="d-flex justify-content-between align-items-center flex-wrap">
+                    <div className="pagination-info mb-2 mb-md-0">
+                      <span className="badge bg-light text-dark px-3 py-2">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                    </div>
+                    <nav>
+                      <Pagination className="mb-0">
+                        <Pagination.First 
+                          onClick={() => handlePageChange(1)} 
+                          disabled={currentPage === 1}
+                          className="rounded-start"
+                        />
+                        <Pagination.Prev 
+                          onClick={() => handlePageChange(currentPage - 1)} 
+                          disabled={currentPage === 1}
+                        />
+                        {Array.from({ length: Math.min(totalPages, 5) }).map((_, idx) => {
+                          let pageNumber;
+                          if (totalPages <= 5) {
+                            pageNumber = idx + 1;
+                          } else if (currentPage <= 3) {
+                            pageNumber = idx + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNumber = totalPages - 4 + idx;
+                          } else {
+                            pageNumber = currentPage - 2 + idx;
+                          }
+                          return (
+                            <Pagination.Item
+                              key={pageNumber}
+                              active={pageNumber === currentPage}
+                              onClick={() => handlePageChange(pageNumber)}
+                            >
+                              {pageNumber}
+                            </Pagination.Item>
+                          );
+                        })}
+                        <Pagination.Next 
+                          onClick={() => handlePageChange(currentPage + 1)} 
+                          disabled={currentPage === totalPages}
+                        />
+                        <Pagination.Last 
+                          onClick={() => handlePageChange(totalPages)}
+                          disabled={currentPage === totalPages}
+                          className="rounded-end"
+                        />
+                      </Pagination>
+                    </nav>
+                  </div>
+                </div>
+              )}
             </div>
+          ) : (
+            <Alert variant="info" className="border-0 bg-light border-start border-5 border-info">
+              <div className="d-flex align-items-center">
+                <div className="me-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-info">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                </div>
+                <div>
+                  <h6 className="mb-1">No campaign data available</h6>
+                  <p className="mb-0 text-muted">Try adjusting your filter criteria or date range.</p>
+                </div>
+              </div>
+            </Alert>
           )}
         </Card.Body>
       </Card>
-      
-      <Row className="mb-3 align-items-center">
-        <Col md={4}>
-          <InputGroup>
-            <Form.Control
-              placeholder="Search"
-              className="bg-dark text-white border-secondary"
-            />
-          </InputGroup>
-        </Col>
-        <Col md={8} className="text-end text-muted">
-          Date range: {formatDate(dateRange.start)} - {formatDate(dateRange.end)}
-        </Col>
-      </Row>
-      
-      {totalPages > 0 && (
-        <div className="mb-3">
-          <p>Showing page {currentPage} of {totalPages}</p>
-        </div>
-      )}
-      
-      {tableData.length > 0 ? (
-        <Table variant="dark" striped bordered hover responsive>
-          <thead>
-            <tr className="bg-secondary">
-              <th>Name</th>
-              <th>Status</th>
-              <th>Date</th>
-              <th>Budget</th>
-              <th className="text-end">Impressions</th>
-              <th className="text-end">Clicks</th>
-              <th className="text-end">CTR</th>
-              <th className="text-end">Spend</th>
-              <th className="text-end">CPC</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tableData.map((campaign, index) => (
-              <tr key={index}>
-                <td>{campaign.name}</td>
-                <td>{campaign.status}</td>
-                <td>{campaign.date}</td>
-                <td>{campaign.budget}</td>
-                <td className="text-end">{campaign.impressions}</td>
-                <td className="text-end">{campaign.clicks}</td>
-                <td className="text-end">{campaign.ctr}%</td>
-                <td className="text-end">{campaign.spend}</td>
-                <td className="text-end">${campaign.cpc}</td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      ) : (
-        <Alert variant="info">No data available for the selected filters</Alert>
-      )}
-
-      {totalPages > 1 && renderPagination()}
     </div>
   );
 };
